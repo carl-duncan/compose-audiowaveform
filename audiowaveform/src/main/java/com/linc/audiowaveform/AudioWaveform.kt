@@ -139,20 +139,19 @@ fun AudioWaveform(
                 waveformAlignment = waveformAlignment
             )
 
-            drawCustomRect(
-                paint = progressAndroidPaint,
+//            drawCustomRect(
+//                paint = progressAndroidPaint,
 //                topLeft = Offset(
 //                    x = 0f,
 //                    y = 0f
 //                ),
-                topLeft = topLeft,
-                size = Size(
-                    width = _progress * size.width,
-                    height = amplitude
-                ),
-                amplitude = amplitude,
-                waveformAlignment = waveformAlignment
-            )
+//                size = Size(
+//                    width = _progress * size.width,
+//                    height = amplitude
+//                ),
+//                amplitude = amplitude,
+//                waveformAlignment = waveformAlignment
+//            )
         }
     }
 }
