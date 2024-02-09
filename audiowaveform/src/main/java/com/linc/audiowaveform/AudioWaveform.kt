@@ -105,6 +105,17 @@ fun AudioWaveform(
             }
             color = brushColor.toArgb()
         }
+
+        val progressAndroidPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            // Convert the brush to Android Color
+            val brushColor = when (progressBrush) {
+                is SolidColor -> progressBrush.value
+                else -> Color.Blue // Default or fallback color
+            }
+            color = brushColor.toArgb()
+        }
+
         spikesAmplitudes.forEachIndexed { index, amplitude ->
             val topLeft = Offset(
                 x = index * _spikeTotalWidth.toPx(),
@@ -128,7 +139,7 @@ fun AudioWaveform(
                 waveformAlignment = waveformAlignment
             )
             drawCustomRect(
-                paint = androidPaint,
+                paint = progressAndroidPaint,
                 topLeft = topLeft,
                 size = rectSize,
                 amplitude = amplitude,
