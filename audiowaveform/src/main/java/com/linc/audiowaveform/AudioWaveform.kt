@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
@@ -23,10 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.linc.audiowaveform.model.AmplitudeType
 import com.linc.audiowaveform.model.WaveformAlignment
 
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RectF
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 
@@ -132,13 +127,12 @@ fun AudioWaveform(
                 amplitude = amplitude,
                 waveformAlignment = waveformAlignment
             )
-            drawRect(
-                brush = progressBrush,
-                size = Size(
-                    width = _progress * size.width,
-                    height = size.height
-                ),
-                blendMode = BlendMode.SrcAtop
+            drawCustomRect(
+                paint = androidPaint,
+                topLeft = topLeft,
+                size = rectSize,
+                amplitude = amplitude,
+                waveformAlignment = waveformAlignment
             )
         }
     }
@@ -215,4 +209,44 @@ fun DrawScope.drawCustomRoundedRect(
         canvas.nativeCanvas.drawPath(path, paint)
     }
 }
+
+fun DrawScope.drawCustomRect(
+    paint: android.graphics.Paint,
+    topLeft: Offset,
+    size: Size,
+    amplitude: Float,
+    waveformAlignment: WaveformAlignment
+) {
+    drawIntoCanvas { canvas ->
+        val path = android.graphics.Path().apply {
+            // Calculate coordinates for the rectangle
+            val left = topLeft.x
+            val top = when (waveformAlignment) {
+                WaveformAlignment.Top -> topLeft.y
+                WaveformAlignment.Bottom -> topLeft.y + size.height - amplitude
+                WaveformAlignment.Center -> topLeft.y + size.height / 2f - amplitude / 2f
+                else -> {
+                    topLeft.y}
+            }
+            val right = left + size.width
+            val bottom = top + amplitude
+
+            // Move to the top left corner
+            moveTo(left, top)
+            // Top line
+            lineTo(right, top)
+            // Right line
+            lineTo(right, bottom)
+            // Bottom line
+            lineTo(left, bottom)
+            // Left line
+            lineTo(left, top)
+
+            close()
+        }
+        canvas.nativeCanvas.drawPath(path, paint)
+    }
+}
+
+
 
