@@ -111,24 +111,6 @@ fun AudioWaveform(
             color = brushColor.toArgb()
         }
         spikesAmplitudes.forEachIndexed { index, amplitude ->
-            drawRoundRect(
-                brush = waveformBrush,
-                topLeft = Offset(
-                    x = index * _spikeTotalWidth.toPx(),
-                    y = when(waveformAlignment) {
-                        WaveformAlignment.Top -> 0F
-                        WaveformAlignment.Bottom -> size.height - amplitude
-                        WaveformAlignment.Center -> size.height / 2F - amplitude / 2F
-                    }
-                ),
-                size = Size(
-                    width = _spikeWidth.toPx(),
-                    height = amplitude
-                ),
-                cornerRadius = CornerRadius(_spikeRadius.toPx(), _spikeRadius.toPx()),
-                style = style
-            )
-
             val topLeft = Offset(
                 x = index * _spikeTotalWidth.toPx(),
                 y = when (waveformAlignment) {
