@@ -138,8 +138,10 @@ fun AudioWaveform(
                 amplitude = amplitude,
                 waveformAlignment = waveformAlignment
             )
-            drawCustomRect(
-                paint = progressAndroidPaint,
+            drawCustomRectWithProgress(
+                progressPaint = progressAndroidPaint,
+                paint = androidPaint,
+                progress = _progress,
                 topLeft = topLeft,
                 size = rectSize,
                 amplitude = amplitude,
@@ -221,41 +223,44 @@ fun DrawScope.drawCustomRoundedRect(
     }
 }
 
-fun DrawScope.drawCustomRect(
+fun DrawScope.drawCustomRectWithProgress(
     paint: android.graphics.Paint,
+    progressPaint: android.graphics.Paint,
     topLeft: Offset,
     size: Size,
     amplitude: Float,
-    waveformAlignment: WaveformAlignment
+    waveformAlignment: WaveformAlignment,
+    progress: Float // Assuming progress is a float between 0 and 1
 ) {
     drawIntoCanvas { canvas ->
-        val path = android.graphics.Path().apply {
-            // Calculate coordinates for the rectangle
-            val left = topLeft.x
-            val top = when (waveformAlignment) {
-                WaveformAlignment.Top -> topLeft.y
-                WaveformAlignment.Bottom -> topLeft.y + size.height - amplitude
-                WaveformAlignment.Center -> topLeft.y + size.height / 2f - amplitude / 2f
-                else -> {
-                    topLeft.y}
-            }
-            val right = left + size.width
-            val bottom = top + amplitude
+        val totalWidth = size.width
+        val progressWidth = totalWidth * progress // Calculate how much width the progress should cover
 
-            // Move to the top left corner
-            moveTo(left, top)
-            // Top line
-            lineTo(right, top)
-            // Right line
-            lineTo(right, bottom)
-            // Bottom line
-            lineTo(left, bottom)
-            // Left line
-            lineTo(left, top)
-
+        // Path for the progress part
+        val progressPath = android.graphics.Path().apply {
+            moveTo(topLeft.x, topLeft.y)
+            lineTo(topLeft.x + progressWidth, topLeft.y)
+            lineTo(topLeft.x + progressWidth, topLeft.y + amplitude)
+            lineTo(topLeft.x, topLeft.y + amplitude)
             close()
         }
-        canvas.nativeCanvas.drawPath(path, paint)
+
+        // Draw the progress part
+        canvas.nativeCanvas.drawPath(progressPath, progressPaint)
+
+        // Path for the remaining part
+        if (progressWidth < totalWidth) { // Check to avoid drawing if progress is 100%
+            val remainingPath = android.graphics.Path().apply {
+                moveTo(topLeft.x + progressWidth, topLeft.y)
+                lineTo(topLeft.x + totalWidth, topLeft.y)
+                lineTo(topLeft.x + totalWidth, topLeft.y + amplitude)
+                lineTo(topLeft.x + progressWidth, topLeft.y + amplitude)
+                close()
+            }
+
+            // Draw the remaining part
+            canvas.nativeCanvas.drawPath(remainingPath, paint)
+        }
     }
 }
 
