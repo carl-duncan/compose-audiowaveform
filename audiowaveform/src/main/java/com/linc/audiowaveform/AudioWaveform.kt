@@ -71,6 +71,25 @@ fun AudioWaveform(
             maxHeight = canvasSize.height.coerceAtLeast(MinSpikeHeight)
         )
     }.map { animateFloatAsState(it, spikeAnimationSpec).value }
+    val androidPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        // Convert the brush to Android Color
+        val brushColor = when (waveformBrush) {
+            is SolidColor -> waveformBrush.value
+            else -> Color.White // Default or fallback color
+        }
+        color = brushColor.toArgb()
+    }
+
+    val progressAndroidPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        // Convert the brush to Android Color
+        val brushColor = when (progressBrush) {
+            is SolidColor -> progressBrush.value
+            else -> Color.Blue // Default or fallback color
+        }
+        color = brushColor.toArgb()
+    }
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -96,62 +115,38 @@ fun AudioWaveform(
     ) {
         canvasSize = size
         spikes = size.width / _spikeTotalWidth.toPx()
-        val androidPaint = android.graphics.Paint().apply {
-            isAntiAlias = true
-            // Convert the brush to Android Color
-            val brushColor = when (waveformBrush) {
-                is SolidColor -> waveformBrush.value
-                else -> Color.White // Default or fallback color
-            }
-            color = brushColor.toArgb()
-        }
-
-        val progressAndroidPaint = android.graphics.Paint().apply {
-            isAntiAlias = true
-            // Convert the brush to Android Color
-            val brushColor = when (progressBrush) {
-                is SolidColor -> progressBrush.value
-                else -> Color.Blue // Default or fallback color
-            }
-            color = brushColor.toArgb()
-        }
+        val numberOfSpikesToFill = (_progress * spikes).toInt()
 
         spikesAmplitudes.forEachIndexed { index, amplitude ->
-            val topLeft = Offset(
-                x = index * _spikeTotalWidth.toPx(),
-                y = when (waveformAlignment) {
-                    WaveformAlignment.Top -> 0f
-                    WaveformAlignment.Bottom -> size.height - amplitude
-                    WaveformAlignment.Center -> size.height / 2f - amplitude / 2f
-                }
-            )
-            val rectSize = Size(
-                width = _spikeWidth.toPx(),
-                height = amplitude
-            )
+            val spikeLeft = index * _spikeTotalWidth.toPx()
+            val spikeTop = when (waveformAlignment) {
+                WaveformAlignment.Top -> 0f
+                WaveformAlignment.Bottom -> size.height - amplitude
+                WaveformAlignment.Center -> size.height / 2f - amplitude / 2f
+            }
+            val rectSize = Size(width = _spikeWidth.toPx(), height = amplitude)
 
+            // Draw the waveform spike
             drawCustomRoundedRect(
                 paint = androidPaint,
-                topLeft = topLeft,
+                topLeft = Offset(x = spikeLeft, y = spikeTop),
                 size = rectSize,
                 spikeRadius = _spikeRadius.toPx(),
                 amplitude = amplitude,
                 waveformAlignment = waveformAlignment
             )
 
-//            drawCustomRect(
-//                paint = progressAndroidPaint,
-//                topLeft = Offset(
-//                    x = 0f,
-//                    y = 0f
-//                ),
-//                size = Size(
-//                    width = _progress * size.width,
-//                    height = amplitude
-//                ),
-//                amplitude = amplitude,
-//                waveformAlignment = waveformAlignment
-//            )
+            // Draw the progress bar for each spike within the progress range
+            if (index < numberOfSpikesToFill) {
+                drawCustomRoundedRect(
+                    paint = progressAndroidPaint,
+                    topLeft = Offset(x = spikeLeft, y = spikeTop),
+                    size = rectSize,
+                    spikeRadius = _spikeRadius.toPx(),
+                    amplitude = amplitude,
+                    waveformAlignment = waveformAlignment
+                )
+            }
         }
     }
 }
@@ -228,43 +223,33 @@ fun DrawScope.drawCustomRoundedRect(
     }
 }
 
-fun DrawScope.drawCustomRect(
+fun DrawScope.drawProgressRect(
     paint: android.graphics.Paint,
-    topLeft: Offset,
-    size: Size,
-    amplitude: Float,
+    progress: Float,
+    maxAmplitude: Float, // Assume this is the maximum amplitude you want to match
     waveformAlignment: WaveformAlignment
 ) {
+    val progressWidth = size.width * progress
+    val top = when (waveformAlignment) {
+        WaveformAlignment.Top -> 0f
+        WaveformAlignment.Center -> size.height / 2f - maxAmplitude / 2f
+        WaveformAlignment.Bottom -> size.height - maxAmplitude
+    }
+
+    val path = android.graphics.Path().apply {
+        val left = 0f
+        val bottom = top + maxAmplitude
+
+        moveTo(left, top)
+        lineTo(progressWidth, top)
+        lineTo(progressWidth, bottom)
+        lineTo(left, bottom)
+        close()
+    }
+
     drawIntoCanvas { canvas ->
-        val path = android.graphics.Path().apply {
-            // Calculate coordinates for the rectangle
-            val left = topLeft.x
-            val top = when (waveformAlignment) {
-                WaveformAlignment.Top -> topLeft.y
-                WaveformAlignment.Bottom -> topLeft.y + size.height - amplitude
-                WaveformAlignment.Center -> topLeft.y + size.height / 2f - amplitude / 2f
-                else -> {
-                    topLeft.y}
-            }
-            val right = left + size.width
-            val bottom = top + amplitude
-
-            // Move to the top left corner
-            moveTo(left, top)
-            // Top line
-            lineTo(right, top)
-            // Right line
-            lineTo(right, bottom)
-            // Bottom line
-            lineTo(left, bottom)
-            // Left line
-            lineTo(left, top)
-
-            close()
-        }
         canvas.nativeCanvas.drawPath(path, paint)
     }
 }
-
 
 
