@@ -138,26 +138,14 @@ fun AudioWaveform(
                 amplitude = amplitude,
                 waveformAlignment = waveformAlignment
             )
-
-//            drawRect(
-//                brush = progressBrush,
-//                size = Size(
-//                    width = _progress * size.width,
-//                    height = size.height
-//                ),
-//                blendMode = BlendMode.SrcAtop
-//            )
-
-            drawCustomRect(
+            drawCustomRoundedRect(
                 paint = progressAndroidPaint,
-                topLeft = Offset(
-                    x = 0f,
-                    y = 0f
-                ),
+                topLeft = topLeft,
                 size = Size(
                     width = _progress * size.width,
                     height = size.height
                 ),
+                spikeRadius = _spikeRadius.toPx(),
                 amplitude = size.height,
                 waveformAlignment = waveformAlignment
             )
