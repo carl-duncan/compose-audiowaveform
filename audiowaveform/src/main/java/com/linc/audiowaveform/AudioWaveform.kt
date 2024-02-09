@@ -138,13 +138,27 @@ fun AudioWaveform(
                 amplitude = amplitude,
                 waveformAlignment = waveformAlignment
             )
-            drawCustomRectWithProgress(
-                progressPaint = progressAndroidPaint,
-                paint = androidPaint,
-                progress = _progress,
-                topLeft = topLeft,
-                size = rectSize,
-                amplitude = amplitude,
+
+//            drawRect(
+//                brush = progressBrush,
+//                size = Size(
+//                    width = _progress * size.width,
+//                    height = size.height
+//                ),
+//                blendMode = BlendMode.SrcAtop
+//            )
+
+            drawCustomRect(
+                paint = progressAndroidPaint,
+                topLeft = Offset(
+                    x = 0f,
+                    y = 0f
+                ),
+                size = Size(
+                    width = _progress * size.width,
+                    height = size.height
+                ),
+                amplitude = size.height,
                 waveformAlignment = waveformAlignment
             )
         }
@@ -223,44 +237,41 @@ fun DrawScope.drawCustomRoundedRect(
     }
 }
 
-fun DrawScope.drawCustomRectWithProgress(
+fun DrawScope.drawCustomRect(
     paint: android.graphics.Paint,
-    progressPaint: android.graphics.Paint,
     topLeft: Offset,
     size: Size,
     amplitude: Float,
-    waveformAlignment: WaveformAlignment,
-    progress: Float // Assuming progress is a float between 0 and 1
+    waveformAlignment: WaveformAlignment
 ) {
     drawIntoCanvas { canvas ->
-        val totalWidth = size.width
-        val progressWidth = totalWidth * progress // Calculate how much width the progress should cover
+        val path = android.graphics.Path().apply {
+            // Calculate coordinates for the rectangle
+            val left = topLeft.x
+            val top = when (waveformAlignment) {
+                WaveformAlignment.Top -> topLeft.y
+                WaveformAlignment.Bottom -> topLeft.y + size.height - amplitude
+                WaveformAlignment.Center -> topLeft.y + size.height / 2f - amplitude / 2f
+                else -> {
+                    topLeft.y}
+            }
+            val right = left + size.width
+            val bottom = top + amplitude
 
-        // Path for the progress part
-        val progressPath = android.graphics.Path().apply {
-            moveTo(topLeft.x, topLeft.y)
-            lineTo(topLeft.x + progressWidth, topLeft.y)
-            lineTo(topLeft.x + progressWidth, topLeft.y + amplitude)
-            lineTo(topLeft.x, topLeft.y + amplitude)
+            // Move to the top left corner
+            moveTo(left, top)
+            // Top line
+            lineTo(right, top)
+            // Right line
+            lineTo(right, bottom)
+            // Bottom line
+            lineTo(left, bottom)
+            // Left line
+            lineTo(left, top)
+
             close()
         }
-
-        // Draw the progress part
-        canvas.nativeCanvas.drawPath(progressPath, progressPaint)
-
-        // Path for the remaining part
-        if (progressWidth < totalWidth) { // Check to avoid drawing if progress is 100%
-            val remainingPath = android.graphics.Path().apply {
-                moveTo(topLeft.x + progressWidth, topLeft.y)
-                lineTo(topLeft.x + totalWidth, topLeft.y)
-                lineTo(topLeft.x + totalWidth, topLeft.y + amplitude)
-                lineTo(topLeft.x + progressWidth, topLeft.y + amplitude)
-                close()
-            }
-
-            // Draw the remaining part
-            canvas.nativeCanvas.drawPath(remainingPath, paint)
-        }
+        canvas.nativeCanvas.drawPath(path, paint)
     }
 }
 
