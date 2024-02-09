@@ -149,7 +149,7 @@ fun AudioWaveform(
                     width = _progress * size.width,
                     height = amplitude
                 ),
-                amplitude = size.height,
+                amplitude = amplitude,
                 waveformAlignment = waveformAlignment
             )
         }
