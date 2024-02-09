@@ -23,6 +23,13 @@ import androidx.compose.ui.unit.dp
 import com.linc.audiowaveform.model.AmplitudeType
 import com.linc.audiowaveform.model.WaveformAlignment
 
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+
 private val MinSpikeWidthDp: Dp = 1.dp
 private val MaxSpikeWidthDp: Dp = 24.dp
 private val MinSpikePaddingDp: Dp = 0.dp
@@ -94,6 +101,15 @@ fun AudioWaveform(
     ) {
         canvasSize = size
         spikes = size.width / _spikeTotalWidth.toPx()
+        val androidPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            // Convert the brush to Android Color
+            val brushColor = when (waveformBrush) {
+                is SolidColor -> waveformBrush.value
+                else -> Color.White // Default or fallback color
+            }
+            color = brushColor.toArgb()
+        }
         spikesAmplitudes.forEachIndexed { index, amplitude ->
             drawRoundRect(
                 brush = waveformBrush,
@@ -111,6 +127,28 @@ fun AudioWaveform(
                 ),
                 cornerRadius = CornerRadius(_spikeRadius.toPx(), _spikeRadius.toPx()),
                 style = style
+            )
+
+            val topLeft = Offset(
+                x = index * _spikeTotalWidth.toPx(),
+                y = when (waveformAlignment) {
+                    WaveformAlignment.Top -> 0f
+                    WaveformAlignment.Bottom -> size.height - amplitude
+                    WaveformAlignment.Center -> size.height / 2f - amplitude / 2f
+                }
+            )
+            val rectSize = Size(
+                width = _spikeWidth.toPx(),
+                height = amplitude
+            )
+
+            drawCustomRoundedRect(
+                paint = androidPaint,
+                topLeft = topLeft,
+                size = rectSize,
+                spikeRadius = _spikeRadius.toPx(),
+                amplitude = amplitude,
+                waveformAlignment = waveformAlignment
             )
             drawRect(
                 brush = progressBrush,
@@ -146,3 +184,53 @@ private fun List<Int>.toDrawableAmplitudes(
         else -> amplitudes.chunkToSize(spikes, transform)
     }.normalize(minHeight, maxHeight)
 }
+
+
+fun DrawScope.drawCustomRoundedRect(
+    paint: android.graphics.Paint,
+    topLeft: Offset,
+    size: Size,
+    spikeRadius: Float,
+    amplitude: Float,
+    waveformAlignment: WaveformAlignment
+) {
+    drawIntoCanvas { canvas ->
+        val path = android.graphics.Path().apply {
+            // Calculate coordinates for the rectangle
+            val left = topLeft.x
+            val top = when (waveformAlignment) {
+                WaveformAlignment.Top -> topLeft.y
+                WaveformAlignment.Bottom -> topLeft.y + size.height - amplitude
+                WaveformAlignment.Center -> topLeft.y + size.height / 2f - amplitude / 2f
+                else -> {
+                    topLeft.y}
+            }
+            val right = left + size.width
+            val bottom = top + amplitude
+
+            // Move to the top left corner, offset by the radius to start the top line
+            moveTo(left + spikeRadius, top)
+
+            // Top line
+            lineTo(right - spikeRadius, top)
+            // Top right corner
+            arcTo(android.graphics.RectF(right - 2 * spikeRadius, top, right, top + 2 * spikeRadius), -90f, 90f)
+            // Right line
+            lineTo(right, bottom - spikeRadius)
+            // Bottom right corner
+            arcTo(android.graphics.RectF(right - 2 * spikeRadius, bottom - 2 * spikeRadius, right, bottom), 0f, 90f)
+            // Bottom line
+            lineTo(left + spikeRadius, bottom)
+            // Bottom left corner
+            arcTo(android.graphics.RectF(left, bottom - 2 * spikeRadius, left + 2 * spikeRadius, bottom), 90f, 90f)
+            // Left line
+            lineTo(left, top + spikeRadius)
+            // Top left corner
+            arcTo(android.graphics.RectF(left, top, left + 2 * spikeRadius, top + 2 * spikeRadius), 180f, 90f)
+
+            close()
+        }
+        canvas.nativeCanvas.drawPath(path, paint)
+    }
+}
+
